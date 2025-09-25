@@ -1,0 +1,9 @@
+{
+  "name": "Mystery Box",
+  "short_name": "MysteryBox",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f12",
+  "theme_color": "#0b0f12",
+  "description": "One-hand, swipe-based mystery-box PWA on Radix testnet"
+}

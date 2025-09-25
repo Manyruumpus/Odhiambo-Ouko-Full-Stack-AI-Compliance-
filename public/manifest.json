@@ -1,0 +1,13 @@
+{
+  "name": "Mystery Box",
+  "short_name": "MysteryBox",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f12",
+  "theme_color": "#0b0f12",
+  "description": "One-hand, swipe-based Mystery Box on Radix Stokenet.",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
