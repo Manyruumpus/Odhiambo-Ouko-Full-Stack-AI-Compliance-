@@ -1,6 +1,6 @@
 // src/App.tsx
 import { useEffect, useMemo, useState } from 'react';
-import { rdt } from './lib/radix';
+import { rdt, getSavedDappDefinitionAddress, saveDappDefinitionAddress } from './lib/radix';
 import { useIdleDisconnect } from './hooks/useIdleDisconnect';
 import './styles/box.css';
 import { csprngInt, randomUUID } from './lib/rng';
@@ -56,14 +56,18 @@ export default function App() {
   // Share + streak
   const [streak, setStreak] = useState<number>(loadStreak());
 
+  // dApp Definition editor
+  const [dappAddr, setDappAddr] = useState<string>('');
+
   // Ensure √ Connect Button web component is defined
   useEffect(() => {
     import('@radixdlt/radix-dapp-toolkit');
   }, []);
 
-  // Initialize streak on visit
+  // Initialize streak and dApp address UI
   useEffect(() => {
     setStreak(updateStreakOnVisit());
+    setDappAddr(getSavedDappDefinitionAddress());
   }, []);
 
   // Subscribe to wallet connection state
@@ -169,6 +173,16 @@ export default function App() {
     if (result.isErr()) console.error(result.error);
   };
 
+  // Save dApp Definition and reload to re-init RDT
+  function saveDapp() {
+    if (!dappAddr || !dappAddr.startsWith('account_')) {
+      alert('Enter a valid dApp Definition account address');
+      return;
+    }
+    saveDappDefinitionAddress(dappAddr);
+    location.reload();
+  }
+
   // ---- UI ----
   return (
     <div className="screen" style={{ color: '#fff' }}>
@@ -186,7 +200,7 @@ export default function App() {
           aria-label="Open mystery box"
           style={{ color: '#fff' }}
         >
-          {/* Center title on the box (always visible, fades out slightly when revealed) */}
+          {/* Center label */}
           <div
             style={{
               position: 'absolute',
@@ -210,7 +224,7 @@ export default function App() {
           <div className="lid" />
 
           <div className="body">
-            {/* Result pill (appears after reveal) */}
+            {/* Result pill */}
             <div
               style={{
                 position: 'absolute',
@@ -240,8 +254,8 @@ export default function App() {
           </div>
         </div>
 
+        {/* Share + Streak row */}
         <div className="panel" style={{ color: '#fff' }}>
-          {/* Share + Streak row */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center' }}>
             <button className="button" onClick={async () => { await shareApp(); }} style={{ color: '#fff' }}>
               Share
@@ -249,6 +263,29 @@ export default function App() {
             <div className="button" style={{ color: '#fff' }}>
               Streak: <b style={{ marginLeft: 6, color: '#fff' }}>{streak}</b>
             </div>
+          </div>
+
+          {/* dApp Definition editor */}
+          <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: 360, alignItems: 'center', justifyContent: 'center', marginTop: 8 }}>
+            <input
+              value={dappAddr}
+              onChange={(e) => setDappAddr(e.target.value)}
+              placeholder="dApp Definition address (account_tdx_...)"
+              style={{
+                flex: 1,
+                padding: '10px 12px',
+                borderRadius: 10,
+                border: '1px solid rgba(148,163,184,0.3)',
+                background: 'rgba(30,41,59,0.55)',
+                color: '#fff'
+              }}
+            />
+            <button className="button" onClick={saveDapp} style={{ color: '#fff', whiteSpace: 'nowrap' }}>
+              Save
+            </button>
+          </div>
+          <div className="stat" style={{ color: '#fff' }}>
+            Active dApp: <b style={{ color: '#fff' }}>{getSavedDappDefinitionAddress() || 'not set'}</b>
           </div>
 
           <div style={{ marginTop: 8 }}>

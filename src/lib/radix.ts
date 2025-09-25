@@ -1,16 +1,22 @@
 // src/lib/radix.ts
-import { RadixDappToolkit, RadixNetwork, DataRequestBuilder } from '@radixdlt/radix-dapp-toolkit';
+import { RadixDappToolkit } from '@radixdlt/radix-dapp-toolkit';
 
+const KEY = 'mysterybox.dappDefAddr';
+
+export function getSavedDappDefinitionAddress(): string {
+  return (
+    (typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null) ||
+    import.meta.env.VITE_DAPP_DEFINITION_ADDRESS ||
+    ''
+  );
+}
+
+export function saveDappDefinitionAddress(addr: string) {
+  if (typeof localStorage !== 'undefined') localStorage.setItem(KEY, addr.trim());
+}
+
+// Initialize RDT with the saved/env address
 export const rdt = RadixDappToolkit({
-  networkId: RadixNetwork.Stokenet,
-  applicationName: 'Mystery Box',
-  applicationVersion: '1.0.0',
-  dAppDefinitionAddress: 'account_tdx_2_129tv3jlmex3z72dk060k0lur3hkqmcswgc3ynh90rfd3mtywpkza7z', // any valid Stokenet account id is acceptable here
+  dAppDefinitionAddress: getSavedDappDefinitionAddress(),
+  networkId: 2 // Stokenet
 });
-
-// Request: at least one account (ongoing permission)
-rdt.walletApi.setRequestData(
-  DataRequestBuilder.config({
-    accounts: { numberOfAccounts: { quantifier: 'atLeast', quantity: 1 } },
-  })
-);
