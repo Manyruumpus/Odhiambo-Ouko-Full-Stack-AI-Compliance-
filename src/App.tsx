@@ -1,6 +1,11 @@
 // src/App.tsx
-import { useEffect, useMemo, useState } from 'react';
-import { rdt, getSavedDappDefinitionAddress, saveDappDefinitionAddress } from './lib/radix';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  rdt,
+  getSavedDappDefinitionAddress,
+  saveDappDefinitionAddress,
+  requestAccountsOnce
+} from './lib/radix';
 import { useIdleDisconnect } from './hooks/useIdleDisconnect';
 import './styles/box.css';
 import { csprngInt, randomUUID } from './lib/rng';
@@ -10,7 +15,12 @@ import { shareApp } from './lib/share';
 
 type Account = { address: string };
 
+// Foundation Stokenet Gateway provider [docs]
 const GATEWAY = 'https://stokenet.radixdlt.com';
+
+// Well‑known XRD resource address (Stokenet networkId 2) [docs]
+const XRD_STOKENET =
+  'resource_tdx_2_1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxtfd2jc';
 
 // ---------- Gateway helpers ----------
 async function fetchEntityFungibles(address: string) {
@@ -32,13 +42,18 @@ async function fetchEntityFungibles(address: string) {
 }
 
 function extractXrdAmount(resp: any): number {
-  const list = resp?.items ?? resp?.fungible_resources?.items ?? [];
-  const x = list.find(
-    (b: any) =>
-      typeof b.resource_address === 'string' &&
-      b.resource_address.toLowerCase().includes('xrd')
-  );
-  return x ? Number(x.amount) : 0;
+  // Tolerate multiple shapes returned by Gateway
+  const list =
+    resp?.fungible_resources?.items ??
+    resp?.items ??
+    [];
+  const x = list.find((b: any) => {
+    const addr = b.resource_address ?? b.address;
+    return typeof addr === 'string' && addr === XRD_STOKENET;
+  });
+  if (!x) return 0;
+  const amt = typeof x.amount === 'object' ? x.amount?.value : x.amount;
+  return Number(amt ?? 0);
 }
 
 // ---------- Component ----------
@@ -59,21 +74,29 @@ export default function App() {
   // dApp Definition editor
   const [dappAddr, setDappAddr] = useState<string>('');
 
-  // Ensure √ Connect Button web component is defined
+  // Throttled debug log
+  const lastLogRef = useRef(0);
+
+  // Define √ Connect Button element
   useEffect(() => {
     import('@radixdlt/radix-dapp-toolkit');
   }, []);
 
-  // Initialize streak and dApp address UI
+  // Init streak + show active dApp definition
   useEffect(() => {
     setStreak(updateStreakOnVisit());
     setDappAddr(getSavedDappDefinitionAddress());
   }, []);
 
-  // Subscribe to wallet connection state
+  // Subscribe to wallet state; ensure an account is shared
   useEffect(() => {
-    const sub = rdt.walletApi.walletData$.subscribe((walletData: any) => {
-      setAccounts(walletData?.accounts ?? []);
+    const sub = rdt.walletApi.walletData$.subscribe(async (walletData: any) => {
+      const accs = walletData?.accounts ?? [];
+      setAccounts(accs);
+      // If connected but user hasn't shared an account yet, prompt once
+      if (walletData?.connected && accs.length === 0) {
+        try { await requestAccountsOnce(); } catch {}
+      }
     });
     return () => sub.unsubscribe();
   }, []);
@@ -86,9 +109,15 @@ export default function App() {
   // Idle auto-disconnect when connected
   useIdleDisconnect(!!accountAddress);
 
-  // Visibility-aware 5s polling for XRD balance
+  // 5 s polling for XRD; pause when tab hidden
   useEffect(() => {
     if (!accountAddress) return;
+
+    // Ensure Stokenet address prefix (network 2)
+    if (!accountAddress.startsWith('account_tdx_2_')) {
+      setError('Connected account is not on Stokenet (expected account_tdx_2_)');
+      return;
+    }
 
     let active = true;
     let timer: number | undefined;
@@ -97,6 +126,11 @@ export default function App() {
       try {
         const resp = await fetchEntityFungibles(accountAddress);
         if (!active) return;
+        const now = Date.now();
+        if (now - lastLogRef.current > 60000) {
+          console.debug('Gateway fungibles sample:', resp);
+          lastLogRef.current = now;
+        }
         setXrdBalance(extractXrdAmount(resp));
         setError(null);
       } catch (e: any) {
@@ -142,7 +176,7 @@ export default function App() {
       setStatus('Connect wallet first');
       return;
     }
-    const outcome = csprngInt(5); // badge classes 0..4
+    const outcome = csprngInt(5);
     onReveal(outcome);
     setStatus('Queuing mint…');
     const req = {
@@ -159,7 +193,7 @@ export default function App() {
     }
   }
 
-  // Simple swipe-up detection
+  // Swipe-up
   let startY = 0;
   function onTouchStart(e: React.TouchEvent) { startY = e.touches[0].clientY; }
   function onTouchEnd(e: React.TouchEvent) {
@@ -220,7 +254,6 @@ export default function App() {
             Mystery Box
           </div>
 
-          {/* Sliding lid */}
           <div className="lid" />
 
           <div className="body">
@@ -246,7 +279,6 @@ export default function App() {
               {lastOutcome === null ? '' : `Badge #${lastOutcome}`}
             </div>
 
-            {/* Swipe/tap hint */}
             <div className="hint" style={{ color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,.6)' }}>
               <span className="chev" />
               Tap or swipe up

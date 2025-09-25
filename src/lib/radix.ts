@@ -1,5 +1,4 @@
-// src/lib/radix.ts
-import { RadixDappToolkit } from '@radixdlt/radix-dapp-toolkit';
+import { RadixDappToolkit, DataRequestBuilder } from '@radixdlt/radix-dapp-toolkit';
 
 const KEY = 'mysterybox.dappDefAddr';
 
@@ -15,8 +14,19 @@ export function saveDappDefinitionAddress(addr: string) {
   if (typeof localStorage !== 'undefined') localStorage.setItem(KEY, addr.trim());
 }
 
-// Initialize RDT with the saved/env address
 export const rdt = RadixDappToolkit({
   dAppDefinitionAddress: getSavedDappDefinitionAddress(),
-  networkId: 2 // Stokenet
+  networkId: 2 // Stokenet [web:357]
 });
+
+// Ongoing: ask the wallet to share >= 1 account
+rdt.walletApi.setRequestData(
+  DataRequestBuilder.accounts().atLeast(1)
+);
+
+// Fallback one‑time request if user connected but didn’t share an account
+export async function requestAccountsOnce() {
+  return rdt.walletApi.sendOneTimeRequest(
+    DataRequestBuilder.accounts().atLeast(1)
+  );
+}
