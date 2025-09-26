@@ -3,8 +3,8 @@
 One-hand, swipe-based mystery-box mobile web app built with React + Radix dApp Toolkit. Connect wallet, see live XRD balance (5 s), open the box with tap/swipe, and queue “mint” requests offline that sync when back online.
 
 ## Live Demo
-- URL: https://<your-live-url> (Vercel/Pages)
-- 30-sec demo GIF: ![Demo](assets/demo.gif)
+- URL: https: https://odhiambo-ouko-full-stack-ai-complia-nine.vercel.app/
+- 30-sec demo GIF: https://www.loom.com/share/fd9d18754b1e4f31839d3e09711335a1?sid=13b6c74a-5725-4e4c-bf49-25d12c65d95c
 
 ## Features (Challenge Mapping)
 - Wallet & Balance
